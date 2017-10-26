@@ -45,7 +45,9 @@ public class CheckFrustum : MonoBehaviour
 
     private void Start()
     {
-        ShowPlanes();
+        //ShowPlanes();
+
+        CalculateFrustumPlanes(Camera.main);
 
         _materials = new Material[_targets.Length];
         for (int i = 0; i < _targets.Length; i++)
@@ -140,4 +142,122 @@ public class CheckFrustum : MonoBehaviour
 
         return result;
     }
+
+    private void CalculateFrustumPlanes(Camera cam)
+    {
+        Matrix4x4 pmat = cam.projectionMatrix;
+
+        // for the left plane
+        {
+            // 平面の方程式
+            // ax + by + cz + d = 0
+            float a = pmat[3, 0] + pmat[0, 0];
+            float b = pmat[3, 1] + pmat[0, 1];
+            float c = pmat[3, 2] + pmat[0, 2];
+            float d = pmat[3, 3] + pmat[0, 3];
+
+            Vector3 normal = new Vector3(a, b, c).normalized;
+
+            GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            plane.transform.position = Camera.main.transform.position;
+            plane.transform.up = normal;
+        }
+
+        // for the right plane
+        {
+            float a = pmat[3, 0] - pmat[0, 0];
+            float b = pmat[3, 1] - pmat[0, 1];
+            float c = pmat[3, 2] - pmat[0, 2];
+            float d = pmat[3, 3] - pmat[0, 3];
+
+            Vector3 normal = new Vector3(a, b, c).normalized;
+
+            GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            plane.transform.position = Camera.main.transform.position;
+            plane.transform.up = normal;
+        }
+
+        // for the bottom plane
+        {
+            float a = pmat[3, 0] + pmat[1, 0];
+            float b = pmat[3, 1] + pmat[1, 1];
+            float c = pmat[3, 2] + pmat[1, 2];
+            float d = pmat[3, 3] + pmat[1, 3];
+
+            Vector3 normal = new Vector3(a, b, c).normalized;
+
+            GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            plane.transform.position = Camera.main.transform.position;
+            plane.transform.up = normal;
+        }
+
+        // for the top plane
+        {
+            float a = pmat[3, 0] - pmat[1, 0];
+            float b = pmat[3, 1] - pmat[1, 1];
+            float c = pmat[3, 2] - pmat[1, 2];
+            float d = pmat[3, 3] - pmat[1, 3];
+
+            Vector3 normal = new Vector3(a, b, c).normalized;
+
+            GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            plane.transform.position = Camera.main.transform.position;
+            plane.transform.up = normal;
+        }
+
+        // for the near plane
+        {
+            float a = pmat[3, 0] + pmat[2, 0];
+            float b = pmat[3, 1] + pmat[2, 1];
+            float c = pmat[3, 2] + pmat[2, 2];
+            float d = pmat[3, 3] + pmat[2, 3];
+
+            Vector3 normal = new Vector3(a, b, c).normalized;
+
+            GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            plane.transform.position = Camera.main.transform.position;
+            plane.transform.up = normal;
+        }
+
+        // for the far plane
+        {
+            float a = pmat[3, 0] - pmat[2, 0];
+            float b = pmat[3, 1] - pmat[2, 1];
+            float c = pmat[3, 2] - pmat[2, 2];
+            float d = pmat[3, 3] - pmat[2, 3];
+
+            Vector3 normal = new Vector3(a, b, c).normalized;
+
+            GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            plane.transform.position = Camera.main.transform.position;
+            plane.transform.up = normal;
+        }
+    }
+
+    //private void CalculateFrustumPlanes(Camera cam)
+    //{
+    //    float halfFov = cam.fieldOfView * 0.5f;
+    //    float near = cam.nearClipPlane;
+    //    float far = cam.farClipPlane;
+    //    float d = ((far - near) * 0.5f) + near;
+    //    float h = d / Mathf.Cos(halfFov);
+
+    //    // near plane
+    //    GameObject np = GameObject.CreatePrimitive(PrimitiveType.Plane);
+    //    np.name = "NearPlane";
+    //    np.transform.position = cam.transform.position + (cam.transform.forward * near);
+    //    np.transform.up = cam.transform.forward;
+
+    //    // far plane
+    //    GameObject fp = GameObject.CreatePrimitive(PrimitiveType.Plane);
+    //    fp.name = "FarPlane";
+    //    fp.transform.position = cam.transform.position + (cam.transform.forward * far);
+    //    fp.transform.up = -cam.transform.forward;
+
+    //    // left plane
+    //    GameObject lp = GameObject.CreatePrimitive(PrimitiveType.Plane);
+    //    lp.name = "LeftPlane";
+    //    lp.transform.rotation = Quaternion.AngleAxis(-90f, lp.transform.forward) * Quaternion.AngleAxis(-halfFov, -lp.transform.right);// * cam.transform.rotation;
+    //    //lp.transform.position = cam.transform.position + (lp.transform.right * h);
+    //}
 }
