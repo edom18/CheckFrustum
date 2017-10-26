@@ -159,7 +159,7 @@ public class CheckFrustum : MonoBehaviour
         for (int i = 0; i < 6; i++)
         {
             float a, b, c, d;
-            int r = i % 2;
+            int r = i / 2;
             if (i % 2 == 0)
             {
                 a = pmat[3, 0] - pmat[r, 0];
