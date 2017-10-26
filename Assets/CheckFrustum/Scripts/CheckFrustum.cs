@@ -47,7 +47,10 @@ public class CheckFrustum : MonoBehaviour
     {
         ShowPlanes();
 
-        CalculateFrustumPlanes(Camera.main);
+        Matrix4x4 pmat = Camera.main.projectionMatrix;
+        //Matrix4x4 m = Matrix4x4.Perspective(cam.fieldOfView, cam.aspect, cam.nearClipPlane, cam.farClipPlane);
+
+        CalculateFrustumPlanes(pmat, Camera.main.transform, Camera.main.nearClipPlane, Camera.main.farClipPlane);
 
         _materials = new Material[_targets.Length];
         for (int i = 0; i < _targets.Length; i++)
@@ -56,15 +59,16 @@ public class CheckFrustum : MonoBehaviour
         }
 
         Plane[] planes1 = GeometryUtility.CalculateFrustumPlanes(Camera.main);
-        Plane[] planes2 = CalculateFrustumPlanes(Camera.main);
+        Plane[] planes2 = CalculateFrustumPlanes(pmat, Camera.main.transform, Camera.main.nearClipPlane, Camera.main.farClipPlane);
 
         Debug.Log("hoge");
     }
 
     private void ShowPlanes()
     {
+        Matrix4x4 pmat = Camera.main.projectionMatrix;
         //Plane[] planes = GeometryUtility.CalculateFrustumPlanes(Camera.main);
-        Plane[] planes = CalculateFrustumPlanes(Camera.main);
+        Plane[] planes = CalculateFrustumPlanes(pmat, Camera.main.transform, Camera.main.nearClipPlane, Camera.main.farClipPlane);
         int i = 0;
         while (i < planes.Length)
         {
@@ -80,8 +84,9 @@ public class CheckFrustum : MonoBehaviour
 
     private Result Detect(Collider target)
     {
+        Matrix4x4 pmat = Camera.main.projectionMatrix;
         //Plane[] planes = GeometryUtility.CalculateFrustumPlanes(Camera.main);
-        Plane[] planes = CalculateFrustumPlanes(Camera.main);
+        Plane[] planes = CalculateFrustumPlanes(pmat, Camera.main.transform, Camera.main.nearClipPlane, Camera.main.farClipPlane);
 
         Result result = Result.Inside;
 
@@ -108,6 +113,12 @@ public class CheckFrustum : MonoBehaviour
         return result;
     }
 
+    /// <summary>
+    /// 法線から一番近い点を算出する
+    /// </summary>
+    /// <param name="target">ターゲットとなるAABB</param>
+    /// <param name="normal">算出する法線</param>
+    /// <returns></returns>
     private Vector3 GetPositivePoint(Collider target, Vector3 normal)
     {
         Bounds bounds = target.bounds;
@@ -129,6 +140,12 @@ public class CheckFrustum : MonoBehaviour
         return result;
     }
 
+    /// <summary>
+    /// 法線から一番遠い点を算出する
+    /// </summary>
+    /// <param name="target">ターゲットとなるAABB</param>
+    /// <param name="normal">算出する法線</param>
+    /// <returns></returns>
     private Vector3 GetNegativePoint(Collider target, Vector3 normal)
     {
         Bounds bounds = target.bounds;
@@ -150,12 +167,11 @@ public class CheckFrustum : MonoBehaviour
         return result;
     }
 
-    private Plane[] CalculateFrustumPlanes(Camera cam)
+    private Plane[] CalculateFrustumPlanes(Matrix4x4 pmat, Transform eyeTrans, float near, float far)
     {
         Plane[] result = new Plane[6];
 
-        Matrix4x4 pmat = cam.projectionMatrix;
-
+        // 0: Left, 1: Right, 2: Bottm, 3: Top
         for (int i = 0; i < 4; i++)
         {
             float a, b, c, d;
@@ -178,9 +194,9 @@ public class CheckFrustum : MonoBehaviour
             }
 
             Vector3 normal = -new Vector3(a, b, c).normalized;
-            normal = cam.transform.rotation * normal;
+            normal = eyeTrans.rotation * normal;
 
-            result[i] = new Plane(normal, cam.transform.position);
+            result[i] = new Plane(normal, eyeTrans.position);
         }
 
         // for the near plane
@@ -191,9 +207,9 @@ public class CheckFrustum : MonoBehaviour
             float d = pmat[3, 3] + pmat[2, 3];
 
             Vector3 normal = -new Vector3(a, b, c).normalized;
-            normal = cam.transform.rotation * normal;
+            normal = eyeTrans.rotation * normal;
 
-            Vector3 pos = cam.transform.position + (cam.transform.forward * cam.nearClipPlane);
+            Vector3 pos = eyeTrans.position + (eyeTrans.forward * near);
             result[4] = new Plane(normal, pos);
         }
 
@@ -205,113 +221,12 @@ public class CheckFrustum : MonoBehaviour
             float d = pmat[3, 3] - pmat[2, 3];
 
             Vector3 normal = -new Vector3(a, b, c).normalized;
-            normal = cam.transform.rotation * normal;
+            normal = eyeTrans.rotation * normal;
 
-            Vector3 pos = cam.transform.position + (cam.transform.forward * cam.nearClipPlane) + (cam.transform.forward * cam.farClipPlane);
+            Vector3 pos = eyeTrans.position + (eyeTrans.forward * near) + (eyeTrans.forward * far);
             result[5] = new Plane(normal, pos);
         }
 
-        //// for the left plane
-        //{
-        //    // 平面の方程式
-        //    // ax + by + cz + d = 0
-        //    float a = pmat[3, 0] - pmat[0, 0];
-        //    float b = pmat[3, 1] - pmat[0, 1];
-        //    float c = pmat[3, 2] - pmat[0, 2];
-        //    float d = pmat[3, 3] - pmat[0, 3];
-
-        //    Vector3 normal = -new Vector3(a, b, c).normalized;
-
-        //    result[0] = new Plane(normal, cam.transform.position);
-        //}
-
-        //// for the right plane
-        //{
-        //    float a = pmat[3, 0] + pmat[0, 0];
-        //    float b = pmat[3, 1] + pmat[0, 1];
-        //    float c = pmat[3, 2] + pmat[0, 2];
-        //    float d = pmat[3, 3] + pmat[0, 3];
-
-        //    Vector3 normal = -new Vector3(a, b, c).normalized;
-
-        //    result[1] = new Plane(normal, cam.transform.position);
-        //}
-
-        //// for the bottom plane
-        //{
-        //    float a = pmat[3, 0] - pmat[1, 0];
-        //    float b = pmat[3, 1] - pmat[1, 1];
-        //    float c = pmat[3, 2] - pmat[1, 2];
-        //    float d = pmat[3, 3] - pmat[1, 3];
-
-        //    Vector3 normal = -new Vector3(a, b, c).normalized;
-
-        //    result[2] = new Plane(normal, cam.transform.position);
-        //}
-
-        //// for the top plane
-        //{
-        //    float a = pmat[3, 0] + pmat[1, 0];
-        //    float b = pmat[3, 1] + pmat[1, 1];
-        //    float c = pmat[3, 2] + pmat[1, 2];
-        //    float d = pmat[3, 3] + pmat[1, 3];
-
-        //    Vector3 normal = -new Vector3(a, b, c).normalized;
-
-        //    result[3] = new Plane(normal, cam.transform.position);
-        //}
-
-        //// for the near plane
-        //{
-        //    float a = pmat[3, 0] - pmat[2, 0];
-        //    float b = pmat[3, 1] - pmat[2, 1];
-        //    float c = pmat[3, 2] - pmat[2, 2];
-        //    float d = pmat[3, 3] - pmat[2, 3];
-
-        //    Vector3 normal = -new Vector3(a, b, c).normalized;
-
-        //    result[4] = new Plane(normal, cam.transform.position);
-        //}
-
-        //// for the far plane
-        //{
-        //    float a = pmat[3, 0] + pmat[2, 0];
-        //    float b = pmat[3, 1] + pmat[2, 1];
-        //    float c = pmat[3, 2] + pmat[2, 2];
-        //    float d = pmat[3, 3] + pmat[2, 3];
-
-        //    Vector3 normal = -new Vector3(a, b, c).normalized;
-
-        //    result[5] = new Plane(normal, cam.transform.position);
-        //}
-
         return result;
     }
-
-    //private void CalculateFrustumPlanes(Camera cam)
-    //{
-    //    float halfFov = cam.fieldOfView * 0.5f;
-    //    float near = cam.nearClipPlane;
-    //    float far = cam.farClipPlane;
-    //    float d = ((far - near) * 0.5f) + near;
-    //    float h = d / Mathf.Cos(halfFov);
-
-    //    // near plane
-    //    GameObject np = GameObject.CreatePrimitive(PrimitiveType.Plane);
-    //    np.name = "NearPlane";
-    //    np.transform.position = cam.transform.position + (cam.transform.forward * near);
-    //    np.transform.up = cam.transform.forward;
-
-    //    // far plane
-    //    GameObject fp = GameObject.CreatePrimitive(PrimitiveType.Plane);
-    //    fp.name = "FarPlane";
-    //    fp.transform.position = cam.transform.position + (cam.transform.forward * far);
-    //    fp.transform.up = -cam.transform.forward;
-
-    //    // left plane
-    //    GameObject lp = GameObject.CreatePrimitive(PrimitiveType.Plane);
-    //    lp.name = "LeftPlane";
-    //    lp.transform.rotation = Quaternion.AngleAxis(-90f, lp.transform.forward) * Quaternion.AngleAxis(-halfFov, -lp.transform.right);// * cam.transform.rotation;
-    //    //lp.transform.position = cam.transform.position + (lp.transform.right * h);
-    //}
 }
