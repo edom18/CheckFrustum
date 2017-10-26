@@ -80,8 +80,8 @@ public class CheckFrustum : MonoBehaviour
 
     private Result Detect(Collider target)
     {
-        Plane[] planes = GeometryUtility.CalculateFrustumPlanes(Camera.main);
-        //Plane[] planes = CalculateFrustumPlanes(Camera.main);
+        //Plane[] planes = GeometryUtility.CalculateFrustumPlanes(Camera.main);
+        Plane[] planes = CalculateFrustumPlanes(Camera.main);
 
         Result result = Result.Inside;
 
@@ -156,12 +156,14 @@ public class CheckFrustum : MonoBehaviour
 
         Matrix4x4 pmat = cam.projectionMatrix;
 
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 4; i++)
         {
             float a, b, c, d;
             int r = i / 2;
             if (i % 2 == 0)
             {
+                // 平面の方程式
+                // ax + by + cz + d = 0
                 a = pmat[3, 0] - pmat[r, 0];
                 b = pmat[3, 1] - pmat[r, 1];
                 c = pmat[3, 2] - pmat[r, 2];
@@ -176,8 +178,37 @@ public class CheckFrustum : MonoBehaviour
             }
 
             Vector3 normal = -new Vector3(a, b, c).normalized;
+            normal = cam.transform.rotation * normal;
 
             result[i] = new Plane(normal, cam.transform.position);
+        }
+
+        // for the near plane
+        {
+            float a = pmat[3, 0] + pmat[2, 0];
+            float b = pmat[3, 1] + pmat[2, 1];
+            float c = pmat[3, 2] + pmat[2, 2];
+            float d = pmat[3, 3] + pmat[2, 3];
+
+            Vector3 normal = -new Vector3(a, b, c).normalized;
+            normal = cam.transform.rotation * normal;
+
+            Vector3 pos = cam.transform.position + (cam.transform.forward * cam.nearClipPlane);
+            result[4] = new Plane(normal, pos);
+        }
+
+        // for the far plane
+        {
+            float a = pmat[3, 0] - pmat[2, 0];
+            float b = pmat[3, 1] - pmat[2, 1];
+            float c = pmat[3, 2] - pmat[2, 2];
+            float d = pmat[3, 3] - pmat[2, 3];
+
+            Vector3 normal = -new Vector3(a, b, c).normalized;
+            normal = cam.transform.rotation * normal;
+
+            Vector3 pos = cam.transform.position + (cam.transform.forward * cam.nearClipPlane) + (cam.transform.forward * cam.farClipPlane);
+            result[5] = new Plane(normal, pos);
         }
 
         //// for the left plane
